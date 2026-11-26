@@ -1,0 +1,30 @@
+name: macOS VNC (Tailscale)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  vnc:
+    runs-on: macos-latest
+    timeout-minutes: 360
+    steps:
+      - name: Enable Screen Sharing
+        run: |
+          sudo dscl . -passwd /Users/runner "${{ secrets.VNC_PASSWORD || '123456' }}"
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+            -activate -configure -access -on -users runner -privs -all -restart -agent
+          sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Print Connection Info
+        run: |
+          echo "=== VNC ADDRESS ==="
+          echo "$(tailscale ip -4):5900"
+          echo "Username: runner"
+
+      - name: Keep Alive
+        run: sleep 21000
