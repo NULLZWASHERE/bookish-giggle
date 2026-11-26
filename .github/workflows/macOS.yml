@@ -10,9 +10,11 @@ jobs:
     steps:
       - name: Enable Screen Sharing
         run: |
-          sudo dscl . -passwd /Users/runner "${{ secrets.VNC_PASSWORD || '123456' }}"
+          PASS="${{ secrets.VNC_PASSWORD || '123456' }}"
+          sudo sysadminctl -addUser vncuser -fullName "VNC User" -password "$PASS" -admin
+          sudo createhomedir -c -u vncuser > /dev/null 2>&1 || true
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-            -activate -configure -access -on -users runner -privs -all -restart -agent
+            -activate -configure -access -on -users vncuser -privs -all -restart -agent
           sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
 
       - name: Connect to Tailscale
@@ -24,7 +26,7 @@ jobs:
         run: |
           echo "=== VNC ADDRESS ==="
           echo "$(tailscale ip -4):5900"
-          echo "Username: runner"
+          echo "Username: vncuser"
 
       - name: Keep Alive
         run: sleep 21000
